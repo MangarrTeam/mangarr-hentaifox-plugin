@@ -1,8 +1,6 @@
 from plugins.base import MangaPluginBase, Formats, AgeRating, Status, NO_THUMBNAIL_URL
 import requests
-from bs4 import BeautifulSoup
-from lxml import etree, html
-from datetime import datetime, timezone
+from lxml import html
 import re
 
 import logging
@@ -19,20 +17,45 @@ class HentaiFoxPlugin(MangaPluginBase):
             words = re.findall(r"[A-z]*", query)
             filtered_words = [w for w in words if len(w) > 0]
             result = " ".join(filtered_words).lower()
-            response = requests.get(f'{self.base_url}/search',
-                                        params={
-                                            "q": result,
-                                        },
-                                        timeout=10
-                                        )
-            
-            response.raise_for_status()
 
-            return self.get_manga_list_from_html(response.content)
+            current_page = 1
+            of_pages = current_page
+            pages_checked = False
+            found_mangas = []
+            while current_page <= of_pages:
+                response = requests.get(f'{self.base_url}/search',
+                                            params={
+                                                "q": result,
+                                                "page": current_page
+                                            },
+                                            timeout=10
+                                            )
+                
+                response.raise_for_status()
+
+                if not pages_checked:
+                    of_pages = self.get_pages_num_from_html(response.content)
+                    pages_checked = True
+
+                found_mangas.append(self.get_manga_list_from_html(response.content))
+                current_page += 1
+
+            return sum(found_mangas, [])
 
         except Exception as e:
             logger.error(f'Error while searching manga - {e}')
         return []
+    
+    def get_pages_num_from_html(self, document) -> int:
+        dom = html.fromstring(document)
+        pagesNode = dom.xpath("//ul[@class='pagination']/li/a")
+
+        if not pagesNode or len(pagesNode) < 2:
+            return 1
+        
+        pages = int(pagesNode[-2].text)
+        # Limits to 20 pages
+        return pages if pages <= 20 else 20
     
     def get_manga_list_from_html(self, document) -> list[dict]:
         dom = html.fromstring(document)
