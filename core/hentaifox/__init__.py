@@ -53,9 +53,7 @@ class HentaiFoxPlugin(MangaPluginBase):
         if not pagesNode or len(pagesNode) < 2:
             return 1
         
-        pages = int(pagesNode[-2].text)
-        # Limits to 20 pages
-        return pages if pages <= 20 else 20
+        return int(pagesNode[-2].text)
     
     def get_manga_list_from_html(self, document) -> list[dict]:
         dom = html.fromstring(document)
