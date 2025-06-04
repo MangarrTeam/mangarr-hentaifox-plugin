@@ -94,7 +94,8 @@ class HentaiFoxPlugin(MangaPluginBase):
 
         manga = self.get_manga_dict()
         manga["name"] = mangaInfo.xpath("./h1")[0].text
-        manga["tags"] = [tagNode.text.strip() for tagNode in mangaInfo.xpath("./ul[@class='tags']/li/*")]
+        for tagNode in mangaInfo.xpath("./ul[@class='tags']/li/*"):
+            manga["tags"].append(tagNode.text.strip())
         manga["url"] = url
 
         return manga
